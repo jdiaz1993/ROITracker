@@ -7,12 +7,13 @@ import {
   Cell,
   Pie,
   PieChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts'
-import { Clock, Percent, TrendingUp } from 'lucide-react'
+import { Clock, Percent, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { PageHeader, AddItemButton } from '@/components/PageHeader'
 import { EmptyState } from '@/components/EmptyState'
 import { StatCard, ProfitDisplay } from '@/components/StatCard'
@@ -31,8 +32,8 @@ export function AnalyticsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
             <StatCardSkeleton key={i} />
           ))}
         </div>
@@ -61,7 +62,24 @@ export function AnalyticsPage() {
         description="Deeper insight into your flipping performance."
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Net Profit / Loss"
+          value={<ProfitDisplay value={analytics.totalProfit} size="lg" />}
+          secondary={
+            analytics.totalProfit >= 0
+              ? 'Realized across all sales'
+              : 'Overall net loss so far'
+          }
+          icon={
+            analytics.totalProfit >= 0 ? (
+              <TrendingUp className="h-5 w-5" />
+            ) : (
+              <TrendingDown className="h-5 w-5" />
+            )
+          }
+          accent={analytics.totalProfit >= 0 ? 'profit' : 'loss'}
+        />
         <StatCard
           label="Average ROI"
           value={<ProfitDisplay value={analytics.avgRoi} asPercent size="lg" />}
@@ -78,7 +96,7 @@ export function AnalyticsPage() {
           label="Sales Recorded"
           value={String(analytics.soldCount)}
           secondary="Used for profit analytics"
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={<Wallet className="h-5 w-5" />}
         />
       </div>
 
@@ -89,23 +107,114 @@ export function AnalyticsPage() {
         />
       ) : (
         <>
+          <ChartCard
+            title="Net Profit & Loss by Month"
+            subtitle="Green = profit months, red = loss months"
+          >
+            {analytics.byMonth.length === 0 ? (
+              <ChartEmpty />
+            ) : (
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.byMonth} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: '#9CA3AF', fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => `$${v}`}
+                      width={52}
+                    />
+                    <ReferenceLine y={0} stroke="#9CA3AF" strokeDasharray="4 4" />
+                    <Tooltip
+                      formatter={(v: number) => [
+                        formatCurrency(Math.abs(v)),
+                        v >= 0 ? 'Net profit' : 'Net loss',
+                      ]}
+                      contentStyle={tooltipStyle}
+                    />
+                    <Bar dataKey="profit" radius={[6, 6, 0, 0]}>
+                      {analytics.byMonth.map((row) => (
+                        <Cell
+                          key={row.month}
+                          fill={row.profit >= 0 ? '#16A34A' : '#DC2626'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </ChartCard>
+
           <div className="grid gap-6 lg:grid-cols-2">
-            <ChartCard title="Profit by Month" subtitle="Net profit from completed sales">
-              {analytics.byMonth.length === 0 ? (
-                <ChartEmpty />
-              ) : (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={analytics.byMonth}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `$${v}`} width={48} />
-                      <Tooltip formatter={(v: number) => [formatCurrency(v), 'Profit']} contentStyle={tooltipStyle} />
-                      <Bar dataKey="profit" fill="#16A34A" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+            <ChartCard title="Profit vs Loss" subtitle="How wins and losses stack up">
+              <div className="space-y-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                      Winning sales
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-profit">
+                      {formatCurrency(analytics.winTotal)}
+                    </p>
+                    <p className="mt-0.5 text-sm text-ink-muted">
+                      {analytics.winCount} sale{analytics.winCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                      Losing sales
+                    </p>
+                    <p className="mt-1 text-2xl font-bold text-loss">
+                      −{formatCurrency(analytics.lossTotal)}
+                    </p>
+                    <p className="mt-0.5 text-sm text-ink-muted">
+                      {analytics.lossCount} sale{analytics.lossCount === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
-              )}
+
+                {analytics.winTotal + analytics.lossTotal > 0 ? (
+                  <div
+                    className="flex h-3 overflow-hidden rounded-full bg-surface"
+                    role="img"
+                    aria-label="Profit versus loss share"
+                  >
+                    {analytics.winTotal > 0 && (
+                      <div
+                        className="bg-profit transition-all"
+                        style={{
+                          width: `${(analytics.winTotal / (analytics.winTotal + analytics.lossTotal)) * 100}%`,
+                        }}
+                      />
+                    )}
+                    {analytics.lossTotal > 0 && (
+                      <div
+                        className="bg-loss transition-all"
+                        style={{
+                          width: `${(analytics.lossTotal / (analytics.winTotal + analytics.lossTotal)) * 100}%`,
+                        }}
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-3 rounded-full bg-surface" />
+                )}
+
+                <div className="rounded-xl border border-border bg-surface px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-ink-secondary">Net result</span>
+                    <ProfitDisplay value={analytics.totalProfit} size="md" />
+                  </div>
+                </div>
+              </div>
             </ChartCard>
 
             <ChartCard title="Revenue by Month" subtitle="Gross sale amounts">

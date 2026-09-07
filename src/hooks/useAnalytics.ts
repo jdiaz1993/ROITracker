@@ -165,6 +165,20 @@ export function useAnalytics(products: Product[]) {
         ? 0
         : sold.reduce((sum, p) => sum + (getProductRoi(p) ?? 0), 0) / sold.length
 
+    const totalProfit = sold.reduce((sum, p) => sum + (getProductNetProfit(p) ?? 0), 0)
+    let profitWins = 0
+    let lossTotal = 0
+    let winTotal = 0
+    for (const p of sold) {
+      const net = getProductNetProfit(p) ?? 0
+      if (net >= 0) {
+        profitWins += 1
+        winTotal += net
+      } else {
+        lossTotal += Math.abs(net)
+      }
+    }
+
     return {
       byMonth,
       investedByMonth,
@@ -175,6 +189,11 @@ export function useAnalytics(products: Product[]) {
       avgDaysToSell,
       avgRoi,
       soldCount: sold.length,
+      totalProfit,
+      winCount: profitWins,
+      lossCount: sold.length - profitWins,
+      winTotal,
+      lossTotal,
     }
   }, [products])
 }

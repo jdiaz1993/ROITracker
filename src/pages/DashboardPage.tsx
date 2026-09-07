@@ -4,6 +4,7 @@ import {
   Wallet,
   Package,
   TrendingUp,
+  TrendingDown,
   Percent,
   BarChart3,
 } from 'lucide-react'
@@ -113,14 +114,20 @@ export function DashboardPage() {
           icon={<Package className="h-5 w-5" />}
         />
         <StatCard
-          label="Total Profit"
+          label="Net Profit / Loss"
           value={<ProfitDisplay value={stats.totalProfit} size="lg" />}
           secondary={
             <span className={stats.overallReturn >= 0 ? 'text-profit' : 'text-loss'}>
               {formatPercent(stats.overallReturn, true)} overall return
             </span>
           }
-          icon={<TrendingUp className="h-5 w-5" />}
+          icon={
+            stats.totalProfit >= 0 ? (
+              <TrendingUp className="h-5 w-5" />
+            ) : (
+              <TrendingDown className="h-5 w-5" />
+            )
+          }
           accent={stats.totalProfit >= 0 ? 'profit' : 'loss'}
         />
         <StatCard
